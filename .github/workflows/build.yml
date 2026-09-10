@@ -1,6 +1,6 @@
 name: Auto Rename Package and Build APK
 on:
-  workflow_dispatch: # Allows you to run this with 1-click whenever you want
+  workflow_dispatch:
 
 jobs:
   rename-and-build:
@@ -9,27 +9,34 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # Upgraded to Java 21 to support the modern security key tags
       - name: Set up Java Environment
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21' 
 
       - name: Automated Package Renamer
         run: |
           OLD_PKG="com.kushagra.bitchord"
-          NEW_PKG="com.amazon.mp3" # 👈 TYPE YOUR NEW PACKAGE NAME HERE
-          NEW_APP_NAME="BitChord"     # 👈 TYPE YOUR NEW APP NAME HERE
-
+          NEW_PKG="com.amazon.mp3"
+          NEW_APP_NAME="BitChord"
           
+          echo "Updating Android Application ID..."
+          find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" -o -name "AndroidManifest.xml" \) -exec sed -i "s/$OLD_PKG/$NEW_PKG/g" {} +
+          
+          echo "Updating App Name..."
+          find . -type f -name "strings.xml" -exec sed -i "s/>BitChord</>$NEW_APP_NAME</g" {} +
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Production APK
-        run: ./gradlew assembleRelease
+      # Changed from assembleRelease to assembleDebug to bypass strict key signing locks
+      - name: Build Custom APK
+        run: ./gradlew assembleDebug
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: Custom-BitChord-APK
-          path: app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/debug/*.apk
