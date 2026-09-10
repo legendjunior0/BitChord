@@ -9,7 +9,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Downgraded to Java 17 to prevent Gradle keytool parser issues
+      # Set Java to 17 (matches your build.gradle.kts Java 17 configuration)
       - name: Set up Java Environment
         uses: actions/setup-java@v4
         with:
@@ -18,9 +18,9 @@ jobs:
 
       - name: Automated Package Renamer
         run: |
-          OLD_PKG="com.kushagra.bitchord"
+          OLD_PKG="com.music.bitchord"
           NEW_PKG="com.amazon.mp3"
-          NEW_APP_NAME="BitChord Custom"
+          NEW_APP_NAME="BitChord"
           
           echo "Updating Android Application ID..."
           find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" -o -name "AndroidManifest.xml" \) -exec sed -i "s/$OLD_PKG/$NEW_PKG/g" {} +
@@ -31,13 +31,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Delete the original author's broken release key completely
+      # Remove any existing keystore file so Gradle triggers the unsigned/debug fallback
       - name: Delete Original Keystore
-        run: rm -f bitchord-release.jks app/bitchord-release.jks
+        run: rm -f bitchord-release.jks app/bitchord-release.jks keystore.properties
 
-      # Assemble debug APK while completely skipping release packaging tasks
+      # Build the Production Debug APK directly
       - name: Build Custom APK
-        run: ./gradlew assembleDebug -x packageProdRelease -x packageRelease
+        run: ./gradlew assembleProdDebug
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
