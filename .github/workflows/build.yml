@@ -9,18 +9,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Upgraded to Java 21 to support the modern security key tags
+      # Downgraded to Java 17 to prevent Gradle keytool parser issues
       - name: Set up Java Environment
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21' 
+          java-version: '17'
 
       - name: Automated Package Renamer
         run: |
           OLD_PKG="com.kushagra.bitchord"
           NEW_PKG="com.amazon.mp3"
-          NEW_APP_NAME="BitChord"
+          NEW_APP_NAME="BitChord Custom"
           
           echo "Updating Android Application ID..."
           find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" -o -name "AndroidManifest.xml" \) -exec sed -i "s/$OLD_PKG/$NEW_PKG/g" {} +
@@ -31,12 +31,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Changed from assembleRelease to assembleDebug to bypass strict key signing locks
+      # Delete the original author's broken release key completely
+      - name: Delete Original Keystore
+        run: rm -f bitchord-release.jks app/bitchord-release.jks
+
+      # Assemble debug APK while completely skipping release packaging tasks
       - name: Build Custom APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug -x packageProdRelease -x packageRelease
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: Custom-BitChord-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/**/*.apk
