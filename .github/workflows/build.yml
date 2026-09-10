@@ -9,7 +9,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Set Java to 17 (matches your build.gradle.kts Java 17 configuration)
       - name: Set up Java Environment
         uses: actions/setup-java@v4
         with:
@@ -31,16 +30,22 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Remove any existing keystore file so Gradle triggers the unsigned/debug fallback
-      - name: Delete Original Keystore
-        run: rm -f bitchord-release.jks app/bitchord-release.jks keystore.properties
+      # Force delete all upstream keystores to ensure no stray signing triggers
+      - name: Wipe Upstream Keystores
+        run: |
+          find . -name "*.jks" -delete
+          find . -name "keystore.properties" -delete
 
-      # Build the Production Debug APK directly
+      # Fix executable permissions for the Gradle wrapper
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x gradlew
+
+      # Clean the workspace and explicitly build only the debug flavor
       - name: Build Custom APK
-        run: ./gradlew assembleProdDebug
+        run: ./gradlew clean assembleProdDebug
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: Custom-BitChord-APK
-          path: app/build/outputs/apk/**/*.apk
+          path: app/build/outputs/apk/prod/debug/*.apk
